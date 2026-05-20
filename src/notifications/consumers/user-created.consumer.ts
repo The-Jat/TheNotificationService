@@ -3,7 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { BaseConsumer } from 'src/core/events/infrastructure/base.consumer';
 
 import { RabbitMQConnection } from 'src/core/events/infrastructure/rabbitmq.connection';
-import { EmailService } from 'src/notifications/applications/email.service';
+import { NotificationOrchestratorService } from '../applications/orchestrators/notification-orchestrator.service';
 
 @Injectable()
 export class UserCreatedConsumer
@@ -25,7 +25,7 @@ export class UserCreatedConsumer
   constructor(
     rabbit: RabbitMQConnection,
 
-    private emailService: EmailService,
+    private orchestrator: NotificationOrchestratorService,
   ) {
     super(rabbit);
   }
@@ -34,7 +34,7 @@ export class UserCreatedConsumer
     payload: any,
   ): Promise<void> {
     this.logger.log(
-      '📧 WELCOME EMAIL EVENT RECEIVED IN NOTIFICATION SERVICE',
+      `Processing ${payload.event}`,
     );
 
     console.log(payload);
@@ -43,9 +43,9 @@ export class UserCreatedConsumer
     // throw new Error(
     //   'SMTP provider failed',
     // );
-    await this.emailService.sendWelcomeEmail(
-      payload.data.email,
-      payload.data.name,
+    await this.orchestrator.handle(
+      payload.event,
+      payload.data,
     );
   }
 }
