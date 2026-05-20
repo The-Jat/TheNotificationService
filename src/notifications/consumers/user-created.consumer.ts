@@ -34,6 +34,11 @@ export class UserCreatedConsumer
       '📧 WELCOME EMAIL EVENT RECEIVED IN NOTIFICATION SERVICE',
     );
 
+    // To test the Dead Letter Queue
+    // throw new Error(
+    //   'SMTP provider failed',
+    // );
+
     console.log(payload);
   }
 }

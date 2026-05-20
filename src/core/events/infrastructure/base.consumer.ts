@@ -28,11 +28,46 @@ export abstract class BaseConsumer
     const channel =
       this.rabbit.getChannel();
 
-    // ASSERT QUEUE
+    /**
+     * DEAD LETTER EXCHANGE
+     */
+    await channel.assertExchange(
+      'dead.letter.exchange',
+      'topic',
+      {
+        durable: true,
+      },
+    );
+
+    /**
+     * DEAD LETTER QUEUE
+     */
+    await channel.assertQueue(
+      `${this.queue}.dlq`,
+      {
+        durable: true,
+      },
+    );
+
+    await channel.bindQueue(
+      `${this.queue}.dlq`,
+      'dead.letter.exchange',
+      `${this.queue}.failed`,
+    );
+
+    /**
+     * MAIN QUEUE
+     */
     await channel.assertQueue(
       this.queue,
       {
         durable: true,
+
+        deadLetterExchange:
+          'dead.letter.exchange',
+
+        deadLetterRoutingKey:
+          `${this.queue}.failed`,
       },
     );
 
@@ -45,29 +80,42 @@ export abstract class BaseConsumer
       );
     }
 
-    // START CONSUMING
+    /**
+     * START CONSUMER
+     */
     channel.consume(
       this.queue,
       async (msg) => {
         if (!msg) return;
 
         try {
-          const payload = JSON.parse(
-            msg.content.toString(),
-          );
+          const payload =
+            JSON.parse(
+              msg.content.toString(),
+            );
 
           this.logger.log(
             `Received event: ${payload.event}`,
           );
 
-          await this.handle(payload);
-
-          channel.ack(msg);
-        } catch (err) {
-          this.logger.error(
-            err.message,
+          await this.handle(
+            payload,
           );
 
+          /**
+           * SUCCESS
+           */
+          channel.ack(msg);
+
+        } catch (err) {
+
+          this.logger.error(
+            `Consumer failed: ${err.message}`,
+          );
+
+          /**
+           * SEND TO DLQ
+           */
           channel.nack(
             msg,
             false,
