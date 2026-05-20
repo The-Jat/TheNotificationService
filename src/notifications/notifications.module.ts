@@ -4,6 +4,7 @@ import { EventsModule } from 'src/core/events/events.module';
 
 import { UserCreatedConsumer } from './consumers/user-created.consumer';
 import { ConfigModule } from '@nestjs/config';
+import { EmailService } from './applications/email.service';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { ConfigModule } from '@nestjs/config';
 
   providers: [
     UserCreatedConsumer,
+    EmailService,
   ],
 })
 export class NotificationsModule {}
